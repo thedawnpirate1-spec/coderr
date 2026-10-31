@@ -50,3 +50,83 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('Ungültige Anmeldedaten.')
         attrs['user'] = user
         return attrs
+
+
+class ProfileDetailSerializer(serializers.ModelSerializer):
+    """Serializer für den Abruf und die Aktualisierung eines einzelnen Benutzerprofils."""
+
+    username = serializers.CharField(source='user.username', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', required=False, allow_blank=True)
+    last_name = serializers.CharField(source='user.last_name', required=False, allow_blank=True)
+    email = serializers.EmailField(source='user.email', required=False)
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'user',
+            'username',
+            'first_name',
+            'last_name',
+            'file',
+            'location',
+            'tel',
+            'description',
+            'working_hours',
+            'type',
+            'email',
+            'created_at',
+        ]
+        read_only_fields = ['user', 'username', 'type', 'created_at']
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        for attr, value in user_data.items():
+            setattr(instance.user, attr, value)
+        if user_data:
+            instance.user.save()
+        return super().update(instance, validated_data)
+
+
+class BusinessProfileListSerializer(serializers.ModelSerializer):
+    """Serializer für die Listenansicht aller Anbieter-Profile."""
+
+    username = serializers.CharField(source='user.username', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'user',
+            'username',
+            'first_name',
+            'last_name',
+            'file',
+            'location',
+            'tel',
+            'description',
+            'working_hours',
+            'type',
+        ]
+
+
+class CustomerProfileListSerializer(serializers.ModelSerializer):
+    """Serializer für die Listenansicht aller Kunden-Profile."""
+
+    username = serializers.CharField(source='user.username', read_only=True)
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+    uploaded_at = serializers.DateTimeField(source='created_at', read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'user',
+            'username',
+            'first_name',
+            'last_name',
+            'file',
+            'uploaded_at',
+            'type',
+        ]
+
