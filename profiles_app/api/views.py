@@ -1,11 +1,16 @@
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
+from ..models import UserProfile
+from .permissions import IsOwnerOrReadOnly
 from .serializers import (
     RegistrationSerializer,
     LoginSerializer,
+    ProfileDetailSerializer,
+    BusinessProfileListSerializer,
+    CustomerProfileListSerializer,
 )
 
 
@@ -57,3 +62,29 @@ class LoginView(APIView):
             'email': user.email,
             'user_id': user.id,
         }
+
+
+class ProfileDetailView(generics.RetrieveUpdateAPIView):
+    """Endpunkt zum Abrufen und Bearbeiten eines einzelnen Benutzerprofils anhand der User-ID."""
+
+    queryset = UserProfile.objects.select_related('user').all()
+    serializer_class = ProfileDetailSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    lookup_field = 'user__pk'
+    lookup_url_kwarg = 'pk'
+
+
+class BusinessProfileListView(generics.ListAPIView):
+    """Endpunkt zum Auflisten aller Geschäftsprofile."""
+
+    queryset = UserProfile.objects.select_related('user').filter(type='business')
+    serializer_class = BusinessProfileListSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class CustomerProfileListView(generics.ListAPIView):
+    """Endpunkt zum Auflisten aller Kundenprofile."""
+
+    queryset = UserProfile.objects.select_related('user').filter(type='customer')
+    serializer_class = CustomerProfileListSerializer
+    permission_classes = [IsAuthenticated]
