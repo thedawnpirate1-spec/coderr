@@ -101,3 +101,97 @@ class AuthTests(APITestCase):
         }
         response = self.client.post(self.login_url, data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileTests(APITestCase):
+    """Testsuite für Einzelprofile sowie Kunden- und Anbieterlisten."""
+
+    def setUp(self):
+        self.customer_user = User.objects.create_user(
+            username='customer1',
+            email='customer1@mail.de',
+            password='password123',
+            first_name='Max',
+            last_name='Muster',
+        )
+        self.customer_profile = UserProfile.objects.create(
+            user=self.customer_user,
+            type='customer',
+            location='Hamburg',
+        )
+        self.business_user = User.objects.create_user(
+            username='business1',
+            email='business1@mail.de',
+            password='password123',
+            first_name='Anna',
+            last_name='Schmidt',
+        )
+        self.business_profile = UserProfile.objects.create(
+            user=self.business_user,
+            type='business',
+            location='Berlin',
+            working_hours='9-17',
+        )
+        self.detail_url = reverse('profile-detail', kwargs={'pk': self.business_user.id})
+        self.business_list_url = reverse('profiles-business')
+        self.customer_list_url = reverse('profiles-customer')
+
+    def test_get_profile_authenticated_success(self):
+        self.client.force_authenticate(user=self.customer_user)
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['username'], 'business1')
+        self.assertEqual(response.data['first_name'], 'Anna')
+        self.assertEqual(response.data['location'], 'Berlin')
+
+    def test_get_profile_unauthenticated_fails(self):
+        response = self.client.get(self.detail_url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_get_profile_not_found(self):
+        self.client.force_authenticate(user=self.customer_user)
+        url = reverse('profile-detail', kwargs={'pk': 9999})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_patch_own_profile_updates_user_and_profile(self):
+        self.client.force_authenticate(user=self.business_user)
+        data = {
+            'first_name': 'Anna-Maria',
+            'last_name': 'Becker',
+            'email': 'anna.becker@mail.de',
+            'location': 'München',
+            'tel': '089123456',
+            'description': 'Webdesign & SEO',
+            'working_hours': '8-16',
+        }
+        response = self.client.patch(self.detail_url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.business_user.refresh_from_db()
+        self.business_profile.refresh_from_db()
+        self.assertEqual(self.business_user.first_name, 'Anna-Maria')
+        self.assertEqual(self.business_user.email, 'anna.becker@mail.de')
+        self.assertEqual(self.business_profile.location, 'München')
+        self.assertEqual(self.business_profile.tel, '089123456')
+
+    def test_patch_other_profile_forbidden(self):
+        self.client.force_authenticate(user=self.customer_user)
+        response = self.client.patch(self.detail_url, {'location': 'Köln'})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_list_business_profiles(self):
+        self.client.force_authenticate(user=self.customer_user)
+        response = self.client.get(self.business_list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['username'], 'business1')
+        self.assertEqual(response.data[0]['type'], 'business')
+
+    def test_list_customer_profiles(self):
+        self.client.force_authenticate(user=self.business_user)
+        response = self.client.get(self.customer_list_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['username'], 'customer1')
+        self.assertIn('uploaded_at', response.data[0])
+
