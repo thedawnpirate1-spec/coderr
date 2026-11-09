@@ -79,15 +79,17 @@ class OfferListSerializer(serializers.ModelSerializer):
         ]
 
     def get_min_price(self, obj):
-        if hasattr(obj, 'annotated_min_price') and obj.annotated_min_price is not None:
-            return float(obj.annotated_min_price)
-        min_val = obj.details.aggregate(min_price=Min('price'))['min_price']
+        annotated = getattr(obj, 'min_price', None)
+        if annotated is not None:
+            return float(annotated)
+        min_val = obj.details.aggregate(val=Min('price'))['val']
         return float(min_val) if min_val is not None else None
 
     def get_min_delivery_time(self, obj):
-        if hasattr(obj, 'annotated_min_delivery_time') and obj.annotated_min_delivery_time is not None:
-            return obj.annotated_min_delivery_time
-        return obj.details.aggregate(min_time=Min('delivery_time_in_days'))['min_time']
+        annotated = getattr(obj, 'min_delivery_time', None)
+        if annotated is not None:
+            return annotated
+        return obj.details.aggregate(val=Min('delivery_time_in_days'))['val']
 
     def get_user_details(self, obj):
         return {
