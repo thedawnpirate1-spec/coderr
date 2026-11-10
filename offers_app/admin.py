@@ -1,3 +1,5 @@
+"""Django admin registration for the offers app."""
+
 from django.contrib import admin
 from .models import Offer, OfferDetail
 

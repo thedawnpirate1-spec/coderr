@@ -1,3 +1,1 @@
-from django.shortcuts import render
-
-# Create your views here.
+"""Placeholder module; all views of profiles_app live in ``profiles_app/api/views.py``."""

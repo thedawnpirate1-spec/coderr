@@ -1,9 +1,11 @@
+"""Database models for service offers and their package tiers."""
+
 from django.db import models
 from django.contrib.auth.models import User
 
 
 class Offer(models.Model):
-    """Modell für ein Dienstleistungsangebot eines Business-Nutzers."""
+    """A service offer published by a business user."""
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='offers')
     title = models.CharField(max_length=255)
@@ -13,11 +15,12 @@ class Offer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Return the offer title as its human-readable representation."""
         return self.title
 
 
 class OfferDetail(models.Model):
-    """Modell für eine konkrete Paketstufe (Basic, Standard, Premium) eines Angebots."""
+    """A concrete package tier (basic, standard or premium) of an offer."""
 
     OFFER_TYPE_CHOICES = [
         ('basic', 'Basic'),
@@ -34,4 +37,5 @@ class OfferDetail(models.Model):
     offer_type = models.CharField(max_length=20, choices=OFFER_TYPE_CHOICES)
 
     def __str__(self):
+        """Return the offer title combined with the tier name."""
         return f"{self.offer.title} - {self.offer_type}"

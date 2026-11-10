@@ -1,9 +1,14 @@
+"""Database model for customer reviews of business users."""
+
 from django.db import models
 from django.contrib.auth.models import User
 
 
 class Review(models.Model):
-    """Modell für eine Kundenbewertung eines Business-Nutzers."""
+    """A rating and comment a customer gives to a business user.
+
+    Each reviewer may review a given business user only once.
+    """
 
     business_user = models.ForeignKey(
         User,
@@ -21,6 +26,8 @@ class Review(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        """Model options: one review per (business user, reviewer) pair."""
+
         constraints = [
             models.UniqueConstraint(
                 fields=['business_user', 'reviewer'],
@@ -29,4 +36,5 @@ class Review(models.Model):
         ]
 
     def __str__(self):
+        """Return the rating, reviewer and reviewed user as its representation."""
         return f"Review ({self.rating}*) by {self.reviewer.username} for {self.business_user.username}"

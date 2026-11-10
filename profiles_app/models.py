@@ -1,9 +1,11 @@
+"""Database model for extended user profile information."""
+
 from django.db import models
 from django.contrib.auth.models import User
 
 
 class UserProfile(models.Model):
-    """Modell für erweiterte Profilinformationen von Kunden und Dienstleistern."""
+    """Extended profile data of a customer or business (service provider) user."""
 
     TYPE_CHOICES = [
         ('customer', 'Customer'),
@@ -20,4 +22,5 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
+        """Return the username and profile type as its representation."""
         return f"{self.user.username} ({self.type})"

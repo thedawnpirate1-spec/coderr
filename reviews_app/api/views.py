@@ -1,3 +1,5 @@
+"""API views for customer reviews and general platform statistics."""
+
 from django.db.models import Avg
 from rest_framework import filters, generics, status
 from rest_framework.exceptions import ValidationError
@@ -12,7 +14,7 @@ from .serializers import ReviewSerializer, ReviewUpdateSerializer
 
 
 class ReviewListCreateView(generics.ListCreateAPIView):
-    """Endpunkt zum Auflisten, Filtern und Erstellen von Kundenbewertungen."""
+    """Endpoint to list, filter and create customer reviews."""
 
     serializer_class = ReviewSerializer
     permission_classes = [IsCustomerOrReadOnlyAuthenticated]
@@ -21,6 +23,14 @@ class ReviewListCreateView(generics.ListCreateAPIView):
     ordering = ['-updated_at']
 
     def get_queryset(self):
+        """Return the reviews, optionally filtered by ``business_user_id`` and ``reviewer_id``.
+
+        Returns:
+            The filtered review queryset.
+
+        Raises:
+            ValidationError: If a filter value is not an integer.
+        """
         queryset = Review.objects.all()
         params = self.request.query_params
         business_user_id = params.get('business_user_id')
@@ -41,11 +51,12 @@ class ReviewListCreateView(generics.ListCreateAPIView):
         return queryset
 
     def perform_create(self, serializer):
+        """Save the new review with the requesting user as its reviewer."""
         serializer.save(reviewer=self.request.user)
 
 
 class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Endpunkt zum Aktualisieren oder Löschen einer einzelnen Bewertung durch deren Verfasser."""
+    """Endpoint for a review's author to retrieve, update or delete the review."""
 
     queryset = Review.objects.all()
     serializer_class = ReviewUpdateSerializer
@@ -53,11 +64,20 @@ class ReviewDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class BaseInfoView(APIView):
-    """Öffentlicher Endpunkt für allgemeine Plattform-Statistiken auf der Startseite."""
+    """Public endpoint providing general platform statistics for the start page."""
 
     permission_classes = [AllowAny]
 
     def get(self, request):
+        """Collect the platform statistics.
+
+        Args:
+            request: The incoming DRF request.
+
+        Returns:
+            A response with ``review_count``, ``average_rating`` (rounded to one
+            decimal, 0.0 without reviews), ``business_profile_count`` and ``offer_count``.
+        """
         review_count = Review.objects.count()
         avg_val = Review.objects.aggregate(avg_rating=Avg('rating'))['avg_rating']
         average_rating = round(float(avg_val), 1) if avg_val is not None else 0.0
@@ -73,4 +93,3 @@ class BaseInfoView(APIView):
             },
             status=status.HTTP_200_OK,
         )
-

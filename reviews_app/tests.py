@@ -1,3 +1,5 @@
+"""Tests for customer reviews and the public base-info endpoint."""
+
 from django.urls import reverse
 from django.contrib.auth.models import User
 from rest_framework import status
@@ -8,9 +10,10 @@ from .models import Review
 
 
 class ReviewAndBaseInfoTests(APITestCase):
-    """Testsuite für Kundenbewertungen sowie den öffentlichen Base-Info-Endpunkt."""
+    """Test suite for customer reviews and the public base-info endpoint."""
 
     def setUp(self):
+        """Create business and customer users, one offer and two existing reviews."""
         self.business_user = User.objects.create_user(
             username='bizrev',
             email='bizrev@mail.de',
@@ -63,6 +66,7 @@ class ReviewAndBaseInfoTests(APITestCase):
         self.base_info_url = reverse('base-info')
 
     def test_list_reviews_and_filter(self):
+        """Reviews can be filtered by reviewer."""
         self.client.force_authenticate(user=self.customer_user)
         response = self.client.get(self.list_url, {'reviewer_id': self.customer_user.id})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -70,6 +74,7 @@ class ReviewAndBaseInfoTests(APITestCase):
         self.assertEqual(response.data[0]['rating'], 5)
 
     def test_create_review_customer_success(self):
+        """A customer can review a business user."""
         self.client.force_authenticate(user=self.customer_user)
         data = {
             'business_user': self.second_business.id,
@@ -81,6 +86,7 @@ class ReviewAndBaseInfoTests(APITestCase):
         self.assertEqual(response.data['reviewer'], self.customer_user.id)
 
     def test_create_duplicate_review_fails(self):
+        """A second review of the same business user is rejected."""
         self.client.force_authenticate(user=self.customer_user)
         data = {
             'business_user': self.business_user.id,
@@ -91,6 +97,7 @@ class ReviewAndBaseInfoTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_review_business_user_forbidden(self):
+        """A business user cannot write a review."""
         self.client.force_authenticate(user=self.business_user)
         data = {
             'business_user': self.second_business.id,
@@ -101,6 +108,7 @@ class ReviewAndBaseInfoTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_patch_and_delete_review_permissions(self):
+        """Only the author can patch or delete a review."""
         self.client.force_authenticate(user=self.second_customer)
         forbidden_patch = self.client.patch(self.detail_url, {'rating': 1}, format='json')
         self.assertEqual(forbidden_patch.status_code, status.HTTP_403_FORBIDDEN)
@@ -120,6 +128,7 @@ class ReviewAndBaseInfoTests(APITestCase):
         self.assertFalse(Review.objects.filter(id=self.review.id).exists())
 
     def test_base_info_public_and_accurate(self):
+        """The public base-info endpoint returns accurate statistics."""
         response = self.client.get(self.base_info_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['review_count'], 2)

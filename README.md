@@ -37,7 +37,23 @@ REST-API-Backend für die Freelancer-Plattform Coderr auf Basis von Django und D
    ```
 
 4. Umgebungsvariablen einrichten:
-   Kopiere `.env.example` zu `.env` und passe bei Bedarf `SECRET_KEY`, `DEBUG` und `ALLOWED_HOSTS` an.
+   ```bash
+   cp .env.example .env
+   # Windows (PowerShell): Copy-Item .env.example .env
+   ```
+   Öffne anschließend die neue `.env`-Datei und trage die Werte ein:
+
+   | Variable | Pflicht | Beschreibung |
+   | :--- | :--- | :--- |
+   | `SECRET_KEY` | **ja** | Geheimer Schlüssel von Django. Es gibt keinen Standardwert, ohne diese Variable startet die Anwendung nicht (`ImproperlyConfigured`). |
+   | `DEBUG` | nein | `True` für die Entwicklung (Standard), `False` für den Produktivbetrieb. |
+   | `ALLOWED_HOSTS` | nein | Kommagetrennte Liste erlaubter Hosts (Standard: `127.0.0.1,localhost`). |
+
+   Einen neuen `SECRET_KEY` erzeugst du mit:
+   ```bash
+   python -c "import secrets; print(secrets.token_urlsafe(50))"
+   ```
+   Die `.env`-Datei ist in `.gitignore` eingetragen und darf nie committet werden.
 
 5. Datenbankmigrationen ausführen und Server starten:
    ```bash
@@ -52,8 +68,13 @@ Die API ist anschließend unter `http://127.0.0.1:8000/api/` erreichbar.
 Alle automatisierten Tests über sämtliche Apps starten:
 
 ```bash
-python manage.py test
+python manage.py test --settings=core.test_settings
 ```
+
+`core/test_settings.py` erweitert die normalen Einstellungen um einen schnellen
+Passwort-Hasher (`MD5PasswordHasher`) und benötigt keine `.env`-Datei. Dadurch sinkt
+die Laufzeit der Testsuite von über einer Minute auf unter eine Sekunde.
+Verwende diese Einstellungen niemals außerhalb von Tests.
 
 ## Wichtigste API-Endpunkte
 

@@ -1,3 +1,5 @@
+"""URL routes of the orders API."""
+
 from django.urls import path
 from .views import (
     CompletedOrderCountView,
@@ -16,4 +18,3 @@ urlpatterns = [
         name='completed-order-count',
     ),
 ]
-

@@ -1,3 +1,5 @@
+"""Tests for orders, status updates, staff deletion and order counters."""
+
 from django.urls import reverse
 from django.contrib.auth.models import User
 from rest_framework import status
@@ -8,9 +10,10 @@ from .models import Order
 
 
 class OrderTests(APITestCase):
-    """Testsuite für Bestellungen, Status-Updates, Staff-Löschung und Auftragszähler."""
+    """Test suite for orders, status updates, staff deletion and order counters."""
 
     def setUp(self):
+        """Create business, customer and staff users, an offer tier and one existing order."""
         self.business_user = User.objects.create_user(
             username='bizorder',
             email='bizorder@mail.de',
@@ -68,6 +71,7 @@ class OrderTests(APITestCase):
         )
 
     def test_list_orders_authenticated(self):
+        """A customer sees only the orders they are part of."""
         self.client.force_authenticate(user=self.customer_user)
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -75,6 +79,7 @@ class OrderTests(APITestCase):
         self.assertEqual(response.data[0]['title'], 'Bestehende Bestellung')
 
     def test_create_order_customer_snapshots_offerdetail(self):
+        """A new order copies title, price and status from the offer tier."""
         self.client.force_authenticate(user=self.customer_user)
         response = self.client.post(self.list_url, {'offer_detail_id': self.offer_detail.id}, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -84,16 +89,19 @@ class OrderTests(APITestCase):
         self.assertEqual(response.data['business_user'], self.business_user.id)
 
     def test_create_order_business_user_forbidden(self):
+        """A business user cannot create an order."""
         self.client.force_authenticate(user=self.business_user)
         response = self.client.post(self.list_url, {'offer_detail_id': self.offer_detail.id}, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_order_nonexistent_offerdetail_returns_404(self):
+        """Ordering a non-existent offer tier returns HTTP 404."""
         self.client.force_authenticate(user=self.customer_user)
         response = self.client.post(self.list_url, {'offer_detail_id': 9999}, format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_patch_order_status_by_business_user(self):
+        """The business user can change the status of an order."""
         self.client.force_authenticate(user=self.business_user)
         response = self.client.patch(self.detail_url, {'status': 'completed'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -101,16 +109,19 @@ class OrderTests(APITestCase):
         self.assertEqual(self.order.status, 'completed')
 
     def test_patch_order_by_customer_forbidden(self):
+        """A customer cannot change the status of an order."""
         self.client.force_authenticate(user=self.customer_user)
         response = self.client.patch(self.detail_url, {'status': 'completed'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_patch_order_invalid_status_returns_400(self):
+        """An unknown status value is rejected with HTTP 400."""
         self.client.force_authenticate(user=self.business_user)
         response = self.client.patch(self.detail_url, {'status': 'unknown'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_delete_order_only_staff_allowed(self):
+        """Only staff users can delete an order."""
         self.client.force_authenticate(user=self.business_user)
         forbidden_resp = self.client.delete(self.detail_url)
         self.assertEqual(forbidden_resp.status_code, status.HTTP_403_FORBIDDEN)
@@ -121,6 +132,7 @@ class OrderTests(APITestCase):
         self.assertFalse(Order.objects.filter(id=self.order.id).exists())
 
     def test_order_counts_and_404_for_non_business(self):
+        """Order counters work for business users and return 404 for others."""
         self.client.force_authenticate(user=self.customer_user)
         in_prog_resp = self.client.get(self.count_url)
         self.assertEqual(in_prog_resp.status_code, status.HTTP_200_OK)

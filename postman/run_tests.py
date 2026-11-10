@@ -12,6 +12,15 @@ sys.path.insert(0, str(ROOT))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
 def main():
+    """Run the Postman collection against a temporary database via Django's test client.
+
+    A Node.js helper evaluates the collection's JavaScript assertions and asks this
+    process to perform each HTTP request in-process. A summary of the run is written
+    to ``postman/test-results.json``.
+
+    Returns:
+        The exit code of the Node.js runner (0 if all assertions passed).
+    """
     import django
     from django.conf import settings
     with tempfile.TemporaryDirectory(prefix='coderr-postman-', dir=ROOT) as temp:

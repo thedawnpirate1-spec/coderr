@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 import os
 from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,10 +22,32 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+def get_required_env(name):
+    """Read a mandatory environment variable and refuse to start without it.
+
+    Args:
+        name: Name of the environment variable to read.
+
+    Returns:
+        The value of the variable, guaranteed to be non-blank.
+
+    Raises:
+        ImproperlyConfigured: If the variable is unset or blank.
+    """
+    value = os.environ.get(name, '')
+    if not value.strip():
+        raise ImproperlyConfigured(
+            f"The {name} environment variable is not set. "
+            "Copy .env.example to .env and fill in a value (see README.md)."
+        )
+    return value
+
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key')
+# There is deliberately no default: the application must not start without it.
+SECRET_KEY = get_required_env('SECRET_KEY')
 
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 

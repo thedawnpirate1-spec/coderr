@@ -1,3 +1,5 @@
+"""URL routes of the profiles API (registration, login and profiles)."""
+
 from django.urls import path
 from .views import (
     RegistrationView,

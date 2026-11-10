@@ -1,3 +1,5 @@
+"""API views for creating, listing and managing orders and order counters."""
+
 from django.contrib.auth.models import User
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
@@ -15,22 +17,24 @@ from .serializers import (
 
 
 class OrderListCreateView(generics.ListCreateAPIView):
-    """Endpunkt zum Auflisten eigener Bestellungen und zum Erstellen einer neuen Bestellung."""
+    """Endpoint to list the user's own orders and to create a new order."""
 
     permission_classes = [IsCustomerForPostOrAuthenticated]
 
     def get_queryset(self):
+        """Return the orders in which the requesting user is customer or business user."""
         user = self.request.user
         return Order.objects.filter(Q(customer_user=user) | Q(business_user=user))
 
     def get_serializer_class(self):
+        """Return the create serializer for POST requests, the read serializer otherwise."""
         if self.request.method == 'POST':
             return OrderCreateSerializer
         return OrderSerializer
 
 
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Endpunkt zum Aktualisieren des Bestellstatus durch Anbieter oder Löschen durch Staff."""
+    """Endpoint for the business user to update an order's status or for staff to delete it."""
 
     queryset = Order.objects.all()
     serializer_class = OrderStatusUpdateSerializer
@@ -38,11 +42,23 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class OrderCountView(APIView):
-    """Endpunkt zur Ermittlung der Anzahl laufender Bestellungen eines Business-Nutzers."""
+    """Endpoint returning the number of in-progress orders of a business user."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_user_id):
+        """Count the in-progress orders of a business user.
+
+        Args:
+            request: The incoming DRF request.
+            business_user_id: ID of the business user.
+
+        Returns:
+            A response containing ``order_count``.
+
+        Raises:
+            Http404: If no business user with this ID exists.
+        """
         get_object_or_404(User, pk=business_user_id, profile__type='business')
         count = Order.objects.filter(
             business_user_id=business_user_id,
@@ -52,15 +68,26 @@ class OrderCountView(APIView):
 
 
 class CompletedOrderCountView(APIView):
-    """Endpunkt zur Ermittlung der Anzahl abgeschlossener Bestellungen eines Business-Nutzers."""
+    """Endpoint returning the number of completed orders of a business user."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request, business_user_id):
+        """Count the completed orders of a business user.
+
+        Args:
+            request: The incoming DRF request.
+            business_user_id: ID of the business user.
+
+        Returns:
+            A response containing ``completed_order_count``.
+
+        Raises:
+            Http404: If no business user with this ID exists.
+        """
         get_object_or_404(User, pk=business_user_id, profile__type='business')
         count = Order.objects.filter(
             business_user_id=business_user_id,
             status='completed',
         ).count()
         return Response({'completed_order_count': count}, status=status.HTTP_200_OK)
-

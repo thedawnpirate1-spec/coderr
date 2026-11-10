@@ -1,3 +1,5 @@
+"""API views for registration, login and user profiles."""
+
 from rest_framework import generics, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,11 +17,19 @@ from .serializers import (
 
 
 class RegistrationView(APIView):
-    """Endpunkt zur Registrierung eines neuen Benutzers mit automatischer Token-Erstellung."""
+    """Endpoint to register a new user and issue an auth token."""
 
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """Register a new user.
+
+        Args:
+            request: The incoming DRF request with the registration data.
+
+        Returns:
+            201 with token, username, email and user ID, or 400 with the validation errors.
+        """
         serializer = RegistrationSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -31,6 +41,15 @@ class RegistrationView(APIView):
         )
 
     def _build_auth_response(self, user, token_key):
+        """Build the response body returned after a successful registration.
+
+        Args:
+            user: The newly created user.
+            token_key: The user's auth token key.
+
+        Returns:
+            A dict with ``token``, ``username``, ``email`` and ``user_id``.
+        """
         return {
             'token': token_key,
             'username': user.username,
@@ -40,11 +59,19 @@ class RegistrationView(APIView):
 
 
 class LoginView(APIView):
-    """Endpunkt zur Anmeldung eines bestehenden Nutzers mit Token-Rückgabe."""
+    """Endpoint to log in an existing user and return the auth token."""
 
     permission_classes = [AllowAny]
 
     def post(self, request):
+        """Authenticate a user.
+
+        Args:
+            request: The incoming DRF request with username and password.
+
+        Returns:
+            200 with token, username, email and user ID, or 400 with the validation errors.
+        """
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -56,6 +83,15 @@ class LoginView(APIView):
         )
 
     def _build_auth_response(self, user, token_key):
+        """Build the response body returned after a successful login.
+
+        Args:
+            user: The authenticated user.
+            token_key: The user's auth token key.
+
+        Returns:
+            A dict with ``token``, ``username``, ``email`` and ``user_id``.
+        """
         return {
             'token': token_key,
             'username': user.username,
@@ -65,7 +101,7 @@ class LoginView(APIView):
 
 
 class ProfileDetailView(generics.RetrieveUpdateAPIView):
-    """Endpunkt zum Abrufen und Bearbeiten eines einzelnen Benutzerprofils anhand der User-ID."""
+    """Endpoint to retrieve and update a single user profile, looked up by user ID."""
 
     queryset = UserProfile.objects.select_related('user').all()
     serializer_class = ProfileDetailSerializer
@@ -75,7 +111,7 @@ class ProfileDetailView(generics.RetrieveUpdateAPIView):
 
 
 class BusinessProfileListView(generics.ListAPIView):
-    """Endpunkt zum Auflisten aller Geschäftsprofile."""
+    """Endpoint listing all business profiles."""
 
     queryset = UserProfile.objects.select_related('user').filter(type='business')
     serializer_class = BusinessProfileListSerializer
@@ -83,7 +119,7 @@ class BusinessProfileListView(generics.ListAPIView):
 
 
 class CustomerProfileListView(generics.ListAPIView):
-    """Endpunkt zum Auflisten aller Kundenprofile."""
+    """Endpoint listing all customer profiles."""
 
     queryset = UserProfile.objects.select_related('user').filter(type='customer')
     serializer_class = CustomerProfileListSerializer

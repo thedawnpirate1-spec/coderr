@@ -1,9 +1,15 @@
+"""Database model for orders booked on an offer package tier."""
+
 from django.db import models
 from django.contrib.auth.models import User
 
 
 class Order(models.Model):
-    """Modell für eine gebuchte Bestellung auf Basis einer Angebotsstufe."""
+    """An order booked by a customer on a package tier of a business user's offer.
+
+    Price, delivery time and features are copied from the offer tier at booking
+    time, so later changes to the offer do not alter existing orders.
+    """
 
     STATUS_CHOICES = [
         ('in_progress', 'In Progress'),
@@ -32,4 +38,5 @@ class Order(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
+        """Return the order ID, title and status as its representation."""
         return f"Order #{self.id} - {self.title} ({self.status})"
