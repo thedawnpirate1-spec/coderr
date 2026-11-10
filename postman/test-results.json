@@ -1,0 +1,14 @@
+{
+  "runner": "Django test client + local JavaScript assertions (not Postman/Newman)",
+  "stats": {
+    "requests": {
+      "total": 33,
+      "failed": 0
+    },
+    "assertions": {
+      "total": 46,
+      "failed": 0
+    }
+  },
+  "failures": []
+}

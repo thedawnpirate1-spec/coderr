@@ -1,0 +1,1000 @@
+{
+  "info": {
+    "name": "Coderr API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "In Reihenfolge im Collection Runner ausfuehren. Erstellt zwei neue Testnutzer sowie eine Bestellung. Nur auf einer lokalen Testinstanz verwenden. base_url anpassen."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName === \"01 Statistik oeffentlich\") { pm.collectionVariables.set(\"run_id\", pm.variables.replaceIn(\"{{$guid}}\").replace(/-/g, \"\").slice(0, 16)); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Statistik oeffentlich",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/base-info/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Statistik vorhanden\", () => pm.expect(pm.response.json()).to.have.all.keys(\"review_count\", \"average_rating\", \"business_profile_count\", \"offer_count\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Bestellungen ohne Token abweisen",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/orders/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registrierung business",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/registration/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"business_{{run_id}}\",\n  \"email\": \"business_{{run_id}}@example.com\",\n  \"password\": \"Postman-Test-83!\",\n  \"repeated_password\": \"Postman-Test-83!\",\n  \"type\": \"business\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const d=pm.response.json(); pm.test(\"Token vorhanden\", () => pm.expect(d.token).to.be.a(\"string\").and.not.empty); pm.collectionVariables.set(\"business_token\",d.token); pm.collectionVariables.set(\"business_id\",d.user_id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login business",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/login/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"business_{{run_id}}\",\n  \"password\": \"Postman-Test-83!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Login liefert passenden Nutzer\", () => pm.expect(pm.response.json().user_id).to.eql(Number(pm.collectionVariables.get(\"business_id\"))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registrierung customer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/registration/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"customer_{{run_id}}\",\n  \"email\": \"customer_{{run_id}}@example.com\",\n  \"password\": \"Postman-Test-83!\",\n  \"repeated_password\": \"Postman-Test-83!\",\n  \"type\": \"customer\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const d=pm.response.json(); pm.test(\"Token vorhanden\", () => pm.expect(d.token).to.be.a(\"string\").and.not.empty); pm.collectionVariables.set(\"customer_token\",d.token); pm.collectionVariables.set(\"customer_id\",d.user_id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login customer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/login/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"customer_{{run_id}}\",\n  \"password\": \"Postman-Test-83!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Login liefert passenden Nutzer\", () => pm.expect(pm.response.json().user_id).to.eql(Number(pm.collectionVariables.get(\"customer_id\"))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login mit falschem Passwort",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/login/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"customer_{{run_id}}\",\n  \"password\": \"wrong\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Eigenes Profil lesen",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/profile/{{customer_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Eigenes Profil aendern",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/profile/{{customer_id}}/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"first_name\": \"Postman\",\n  \"location\": \"Berlin\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Profil aktualisiert\", () => pm.expect(pm.response.json().location).to.eql(\"Berlin\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fremdes Profil aendern verboten",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/profile/{{business_id}}/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"location\": \"Forbidden\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profilliste business",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/profiles/business/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profilliste customer",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/profiles/customer/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kunde darf kein Angebot erstellen",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/offers/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman {{run_id}}\",\n  \"description\": \"Automatischer API-Test\",\n  \"details\": [\n    {\n      \"title\": \"basic\",\n      \"revisions\": 1,\n      \"delivery_time_in_days\": 1,\n      \"price\": 50,\n      \"features\": [\n        \"Test feature\"\n      ],\n      \"offer_type\": \"basic\"\n    },\n    {\n      \"title\": \"standard\",\n      \"revisions\": 1,\n      \"delivery_time_in_days\": 2,\n      \"price\": 100,\n      \"features\": [\n        \"Test feature\"\n      ],\n      \"offer_type\": \"standard\"\n    },\n    {\n      \"title\": \"premium\",\n      \"revisions\": 1,\n      \"delivery_time_in_days\": 3,\n      \"price\": 150,\n      \"features\": [\n        \"Test feature\"\n      ],\n      \"offer_type\": \"premium\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Angebot erstellen",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{business_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/offers/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman {{run_id}}\",\n  \"description\": \"Automatischer API-Test\",\n  \"details\": [\n    {\n      \"title\": \"basic\",\n      \"revisions\": 1,\n      \"delivery_time_in_days\": 1,\n      \"price\": 50,\n      \"features\": [\n        \"Test feature\"\n      ],\n      \"offer_type\": \"basic\"\n    },\n    {\n      \"title\": \"standard\",\n      \"revisions\": 1,\n      \"delivery_time_in_days\": 2,\n      \"price\": 100,\n      \"features\": [\n        \"Test feature\"\n      ],\n      \"offer_type\": \"standard\"\n    },\n    {\n      \"title\": \"premium\",\n      \"revisions\": 1,\n      \"delivery_time_in_days\": 3,\n      \"price\": 150,\n      \"features\": [\n        \"Test feature\"\n      ],\n      \"offer_type\": \"premium\"\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const d=pm.response.json(); pm.collectionVariables.set(\"offer_id\",d.id); pm.collectionVariables.set(\"detail_id\",d.details[0].id); pm.test(\"Drei Pakete\", () => pm.expect(d.details).to.have.lengthOf(3));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Angebote filtern",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/offers/?creator_id={{business_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Eigenes Angebot gefunden\", () => pm.expect(pm.response.json().results.some(x => x.id === Number(pm.collectionVariables.get(\"offer_id\")))).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Ungueltiger Filter",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/api/offers/?creator_id=invalid"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Angebot lesen",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/offers/{{offer_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Angebot aendern",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{business_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/offers/{{offer_id}}/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Aktualisiert {{run_id}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paket lesen",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/offerdetails/{{detail_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bestellung erstellen",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/orders/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"offer_detail_id\": \"{{detail_id}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "const d=pm.response.json(); pm.collectionVariables.set(\"order_id\",d.id); pm.test(\"Bestellung aktiv\", () => pm.expect(d.status).to.eql(\"in_progress\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Eigene Bestellungen",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/orders/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Laufende Bestellungen zaehlen",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/order-count/{{business_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Eine laufende Bestellung\", () => pm.expect(pm.response.json().order_count).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Kunde darf Status nicht aendern",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/orders/{{order_id}}/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"completed\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bestellung abschliessen",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{business_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/orders/{{order_id}}/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"completed\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Abgeschlossen\", () => pm.expect(pm.response.json().status).to.eql(\"completed\"));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Abgeschlossene Bestellungen zaehlen",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/completed-order-count/{{business_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Eine abgeschlossene Bestellung\", () => pm.expect(pm.response.json().completed_order_count).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bewertung erstellen",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/reviews/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"business_user\": \"{{business_id}}\",\n  \"rating\": 5,\n  \"description\": \"Postman Test\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set(\"review_id\",pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Doppelte Bewertung abweisen",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/reviews/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"business_user\": \"{{business_id}}\",\n  \"rating\": 5,\n  \"description\": \"Duplicate\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bewertungen filtern",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/reviews/?business_user_id={{business_id}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bewertung aendern",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/reviews/{{review_id}}/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rating\": 4\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Bewertung aktualisiert\", () => pm.expect(pm.response.json().rating).to.eql(4));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bestellung loeschen ohne Staff verboten",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{business_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/orders/{{order_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Bewertung loeschen",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{customer_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/reviews/{{review_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Angebot loeschen",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{business_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/offers/{{offer_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 204\", () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Geloeschtes Angebot nicht gefunden",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Token {{business_token}}"
+          }
+        ],
+        "url": "{{base_url}}/api/offers/{{offer_id}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
